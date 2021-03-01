@@ -1,5 +1,4 @@
 # Hollow Knight Censored
 
-Just fixing a small oversight in the game.
+Censors all enemies in the game with a black box. Very important mod.
 
-![](screenshot.png)

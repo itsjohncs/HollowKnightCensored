@@ -22,10 +22,7 @@ namespace HollowKnightCensored
 
         private bool HandleEnableEnemy(GameObject enemy, bool isAlreadyDead)
         {
-            if (enemy.name == "Fluke Mother")
-            {
-                CensorObject(enemy);
-            }
+            CensorObject(enemy);
 
             // We've actually made a wrapper around the function the game uses
             // to check whether an object is dead. We need to not mess it up
@@ -33,29 +30,50 @@ namespace HollowKnightCensored
             return isAlreadyDead;
         }
 
-        // Note that this won't follow the target around. It's designed to
-        // censor fluke marm, who spends most of her time vibing.
+        // Censor the target with a black box. Will create a black box the same
+        // size as the target currently is, and will anchor it to the center of
+        // the target. If the target changes the size of its sprite/mesh/other-
+        // material then the censor may get out of place.
         private void CensorObject(GameObject target)
         {
-            GameObject canvasObject = new GameObject("Black Bar Canvas");
-            Canvas canvas = canvasObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
+            // We need the game object to have a renderer so we can figure out
+            // how big the object is (to make an effective censor for it)
+            Renderer targetRenderer = target.GetComponent<Renderer>();
+            if (targetRenderer == null) {
+                return;
+            }
 
-            GameObject blackBox = new GameObject("Black Box Censor");
-            blackBox.AddComponent<CanvasRenderer>();
+            GameObject censor = new GameObject(
+                "Censor",
+                typeof(SpriteRenderer));
 
-            // Prepare a 1x1 black sprite
+            // Create a 1x1 black sprite
             Texture2D blackTexture = new Texture2D(1, 1);
             blackTexture.SetPixel(0, 0, Color.black);
             blackTexture.Apply();
-            Sprite blackSprite = Sprite.Create(blackTexture, new Rect(0, 0, 1, 1), Vector2.zero);
+            Sprite blackSprite = Sprite.Create(
+                blackTexture,
+                new Rect(0, 0, 1, 1),
+                // This makes the pivot point the center of sprite
+                new Vector2(0.5f, 0.5f),
+                // And this makes the sprite 1 world unit by 1 world unit. The
+                // default value makes it 1/100 world unit by 1/100...
+                1);
 
-            Image image = blackBox.AddComponent<Image>();
-            image.sprite = blackSprite;
+            SpriteRenderer renderer = censor.GetComponent<SpriteRenderer>();
+            renderer.sprite = blackSprite;
+            renderer.sortingLayerName = targetRenderer.sortingLayerName;
+            renderer.sortingOrder = targetRenderer.sortingOrder + 1;
 
-            blackBox.transform.SetParent(canvasObject.transform);
-            blackBox.transform.position = target.transform.position;
-            blackBox.transform.localScale = new Vector3(0.05f, 0.08f);
+            // Size our censor to be the same size as the object, and keep it
+            // anchored to the center of the object
+            censor.transform.parent = target.transform;
+            censor.transform.localPosition =
+                target.transform.InverseTransformPoint(
+                    targetRenderer.bounds.center);
+            censor.transform.localScale =
+                target.transform.InverseTransformVector(
+                    targetRenderer.bounds.size);
         }
     }
 }
